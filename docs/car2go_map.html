@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>car2go_map.py</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>car2go_map.py</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              <p>This script by <a href="http://nicolas.kruchten.com/">Nicolas Kruchten</a> was used to
+generate a map for a <a href="http://ici.radio-canada.ca/nouvelles/special/2016/11/montreal-car2go-covoiturage-vignettes-stationnement/">CBC.ca article</a>
+showing the spatio-temporal distribution of available
+<a href="https://www.car2go.com/CA/en/montreal/">Car2Go</a> vehicles in Montreal over a
+30-day period during the summer of 2016.
+<small><a href="http://nicolas.kruchten.com/">more info &raquo;</a></small></p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p><a href="http://pandas.pydata.org/"><code>pandas</code></a> and
+<a href="http://scikit-learn.org/stable/"><code>scikit-learn</code></a> are used to manipulate the
+data,  <a href="https://github.com/python-visualization/folium"><code>folium</code></a> to make the
+map, and <a href="https://vincent.readthedocs.io/en/latest/"><code>vincent</code></a> to make the
+popup charts.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-keyword">import</span> pandas, math
+<span class="hljs-keyword">from</span> sklearn.cluster <span class="hljs-keyword">import</span> MiniBatchKMeans
+<span class="hljs-keyword">from</span> folium <span class="hljs-keyword">import</span> Map, CircleMarker, Vega, Popup
+<span class="hljs-keyword">from</span> vincent <span class="hljs-keyword">import</span> Bar</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>The dataset contains approximately 3 million <code>(lat, lon, hod)</code> tuples
+where <code>hod</code> stands for ‘hour of day’.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+df = pandas.read_csv(<span class="hljs-string">"lat_lon_hod.csv.gz"</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p><code>carh</code> stands for ‘car-hours’, and since the dataset was made by interrogating
+the Car2Go API every 5 minutes, each row represents an observation which, on
+average, means that a car was present for one twelfth of an hour during the
+given hour of day at the given latitude and longitude.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+samples_per_hour = <span class="hljs-number">12</span>
+df[<span class="hljs-string">"carh"</span>] = <span class="hljs-number">1.0</span>/samples_per_hour</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>The map is divided into 250 zones, each containing a comparable numbers of
+observations, using
+<a href="https://en.wikipedia.org/wiki/K-means_clustering">K-means clustering</a>.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+df[<span class="hljs-string">"zone"</span>] = MiniBatchKMeans(<span class="hljs-number">250</span>).fit_predict(df[[<span class="hljs-string">"lat"</span>, <span class="hljs-string">"lon"</span>]].values)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>A dataset is generated with one row per zone containing the latitude and
+longitude of the zone centroid, and the total number of car-hours observed.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+zones = df.groupby(<span class="hljs-string">"zone"</span>).agg(dict(carh=<span class="hljs-string">'sum'</span>, lon=<span class="hljs-string">'mean'</span>, lat=<span class="hljs-string">'mean'</span>))</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>With the data manipulation complete, a map is initialized, centered on the
+centroid of all the zone centroids.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+map = Map(zoom_start=<span class="hljs-number">12</span>, tiles=<span class="hljs-string">"cartodbpositron"</span>,
+             location=list(zones[[<span class="hljs-string">"lat"</span>,<span class="hljs-string">"lon"</span>]].mean().values))</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>For each zone…</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">for</span> i, zone <span class="hljs-keyword">in</span> zones.iterrows():</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>…a dataset is created containing the average number of car-hours/day by
+hour of day. (1 car-hour/day at a given hour of day in a given zone
+represents either 1 car available in the zone for the entire hour, or 3
+cars for 20 minutes each, or 1 car for 20 minutes and 1 for 40 minutes,
+and so on.)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    num_days = <span class="hljs-number">30</span>
+    carh_by_hod = df.query(<span class="hljs-string">"zone==@i"</span>).groupby(<span class="hljs-string">"hod"</span>).carh.sum()/num_days</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>…a bar chart is created with this dataset, which shows the daily pattern
+of car availabilities. This is done by first generating a JSON description
+of a bar-chart in the <a href="https://vega.github.io/vega/">Vega grammar</a>, and
+then rendering it to a graphic.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    vega = Bar(carh_by_hod, width=<span class="hljs-number">450</span>,
+               height=<span class="hljs-number">150</span>).axis_titles(x=<span class="hljs-string">'Hour of Day'</span>, y=<span class="hljs-string">'Cars Available'</span>)
+    chart = Vega(vega.to_json(), width=vega.width+<span class="hljs-number">50</span>, height=vega.height+<span class="hljs-number">50</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>… and a circle is placed on the map:</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    map.add_child( CircleMarker(</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>&bullet; circles are located on the zone centroids.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        location = [zone[<span class="hljs-string">"lat"</span>], zone[<span class="hljs-string">"lon"</span>]],</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>&bullet; circles are scaled such that the area is proportional to the
+total number of car-hours observed in the zone.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        radius = int(<span class="hljs-number">6</span>*math.sqrt(zone[<span class="hljs-string">"carh"</span>])),</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>&bullet; circles are coloured according to the hour of day with peak
+car availability: blues representing night-time, yellows representing
+day-time and reds representing evenings.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        fill_opacity = <span class="hljs-number">0.8</span>, color=<span class="hljs-keyword">None</span>,
+        fill_color = (<span class="hljs-string">'#274cc9'</span>,<span class="hljs-string">'#274cc9'</span>,<span class="hljs-string">'#274cc9'</span>,<span class="hljs-string">'#274cc9'</span>,
+            <span class="hljs-string">'#274cc9'</span>,<span class="hljs-string">'#3959bf'</span>,<span class="hljs-string">'#647aa6'</span>,<span class="hljs-string">'#909b8c'</span>,<span class="hljs-string">'#bcbc73'</span>,
+            <span class="hljs-string">'#e8dd5a'</span>,<span class="hljs-string">'#f1e455'</span>,<span class="hljs-string">'#f1e455'</span>,<span class="hljs-string">'#f1e455'</span>,<span class="hljs-string">'#f1e455'</span>,
+            <span class="hljs-string">'#f0df56'</span>,<span class="hljs-string">'#ecc45a'</span>,<span class="hljs-string">'#e7a95f'</span>,<span class="hljs-string">'#e28e63'</span>,<span class="hljs-string">'#de7467'</span>,
+            <span class="hljs-string">'#c46576'</span>,<span class="hljs-string">'#9d5f8a'</span>,<span class="hljs-string">'#76599f'</span>,<span class="hljs-string">'#4e52b4'</span>,<span class="hljs-string">'#274cc9'</span>
+            )[carh_by_hod.idxmax()],</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>&bullet; clicking on the circles pops up the daily-pattern chart.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        popup = Popup(max_width=chart.width[<span class="hljs-number">0</span>]).add_child(chart)
+    ) )</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>The map is then saved to disk as a <a href="map.html">self-contained HTML file</a>
+(except for the map tiles, of course) in that the Javascript required to place
+the circles on the map and generate the popup charts is inlined. This is very
+convenient for collaborating with colleagues without sending a large number of
+files or requiring them to run this script.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>map.save(<span class="hljs-string">'map.html'</span>)</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>
