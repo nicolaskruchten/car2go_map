@@ -67,8 +67,8 @@ for i, zone in zones.iterrows():
     # ... and a circle is added to the map:
     map.add_child( CircleMarker(
 
-        # &bullet; the circle is located at centroid of the observations in the
-        # zone
+        # &bullet; the circle is located on the centroid of the observations in
+        # the zone
         location = [zone["lat"], zone["lon"]],
 
         # &bullet; the circle area is proportional to the
