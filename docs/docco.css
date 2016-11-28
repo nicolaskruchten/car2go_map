@@ -21,11 +21,11 @@
 }
 
 @font-face {
-    font-family: 'novecento-bold';
-    src: url('public/fonts/novecento-bold.eot');
-    src: url('public/fonts/novecento-bold.eot?#iefix') format('embedded-opentype'),
-         url('public/fonts/novecento-bold.woff') format('woff'),
-         url('public/fonts/novecento-bold.ttf') format('truetype');
+    font-family: 'roboto-black';
+    src: url('public/fonts/roboto-black.eot');
+    src: url('public/fonts/roboto-black.eot?#iefix') format('embedded-opentype'),
+         url('public/fonts/roboto-black.woff') format('woff'),
+         url('public/fonts/roboto-black.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
@@ -67,8 +67,7 @@ h1, h2, h3, h4, h5, h6 {
   color: #112233;
   line-height: 1em;
   font-weight: normal;
-  font-family: "novecento-bold";
-  text-transform: uppercase;
+  font-family: "roboto-black";
   margin: 30px 0 15px 0;
 }
 
