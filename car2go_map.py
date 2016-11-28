@@ -16,37 +16,34 @@ from sklearn.cluster import MiniBatchKMeans
 from folium import Map, CircleMarker, Vega, Popup
 from vincent import Bar
 
-# The dataset contains approximately 3 million `(lat, lon, hod)` tuples
-# where `hod` stands for 'hour of day'.
+# The dataset contains approximately 3.2 million observations, consisting of
+#`(lat, lon, hod)` tuples, where `hod` stands for 'hour of day'.
 
 df = pandas.read_csv("lat_lon_hod.csv.gz")
 
-# `carh` stands for 'car-hours', and since the dataset was made by interrogating
-# the Car2Go API every 5 minutes, each row represents an observation which, on
-# average, means that a car was present for one twelfth of an hour during the
-# given hour of day at the given latitude and longitude.
+# `carh` stands for 'car-hours', and since the dataset was made by querying
+# the Car2Go API every 5 minutes, each observation means that on average,
+# a car was present for one twelfth of an hour during the given hour of day at
+# the given latitude and longitude.
 
 samples_per_hour = 12
 df["carh"] = 1.0/samples_per_hour
 
-# The map is divided into 250 zones, each containing a comparable numbers of
-# observations, using
-# [K-means clustering](https://en.wikipedia.org/wiki/K-means_clustering).
+# Using
+# [K-means clustering](https://en.wikipedia.org/wiki/K-means_clustering),
+# the observations are grouped into 250 spatially-contiguous zones such that
+# each zone contains a comparable number of observations.
 
 df["zone"] = MiniBatchKMeans(250).fit_predict(df[["lat", "lon"]].values)
 
-# A dataset is generated with one row per zone containing the latitude and
-# longitude of the zone centroid, and the total number of car-hours observed.
 
-zones = df.groupby("zone").agg(dict(carh='sum', lon='mean', lat='mean'))
-
-# With the data manipulation complete, a map is initialized, centered on the
-# centroid of all the zone centroids.
+# A map is initialized, centered on the centroid of all the observations.
 
 map = Map(zoom_start=12, tiles="cartodbpositron",
-             location=list(zones[["lat","lon"]].mean().values))
+             location=list(df[["lat","lon"]].mean().values))
 
 # For each zone...
+zones = df.groupby("zone").agg(dict(carh='sum', lon='mean', lat='mean'))
 for i, zone in zones.iterrows():
 
     # ...a dataset is created containing the average number of car-hours/day by
@@ -67,19 +64,20 @@ for i, zone in zones.iterrows():
                height=150).axis_titles(x='Hour of Day', y='Cars Available')
     chart = Vega(vega.to_json(), width=vega.width+50, height=vega.height+50)
 
-    # ... and a circle is placed on the map:
+    # ... and a circle is added to the map:
     map.add_child( CircleMarker(
 
-        # &bullet; circles are located on the zone centroids.
+        # &bullet; the circle is located at centroid of the observations in the
+        # zone
         location = [zone["lat"], zone["lon"]],
 
-        # &bullet; circles are scaled such that the area is proportional to the
-        # total number of car-hours observed in the zone.
+        # &bullet; the circle area is proportional to the
+        # total number of car-hours observed in the zone
         radius = int(6*math.sqrt(zone["carh"])),
 
-        # &bullet; circles are coloured according to the hour of day with peak
+        # &bullet; the circle is coloured according to the hour of day with peak
         # car availability: blues representing night-time, yellows representing
-        # day-time and reds representing evenings.
+        # day-time and reds representing evenings
         fill_opacity = 0.8, color=None,
         fill_color = ('#274cc9','#274cc9','#274cc9','#274cc9',
             '#274cc9','#3959bf','#647aa6','#909b8c','#bcbc73',
@@ -88,13 +86,12 @@ for i, zone in zones.iterrows():
             '#c46576','#9d5f8a','#76599f','#4e52b4','#274cc9'
             )[carh_by_hod.idxmax()],
 
-        # &bullet; clicking on the circles pops up the daily-pattern chart.
+        # &bullet; clicking on the circle pops up the daily-pattern chart
         popup = Popup(max_width=chart.width[0]).add_child(chart)
     ) )
 
-# The map is then saved to disk as a [self-contained HTML file](map.html)
-# (except for the map tiles, of course) in that the Javascript required to place
-# the circles on the map and generate the popup charts is inlined. This is very
-# convenient for collaborating with colleagues without sending a large number of
-# files or requiring them to run this script.
+# The map is then saved to disk as a single [HTML file](map.html) with inlined
+# data, Javascript and CSS information. This is very convenient for
+# collaborating with colleagues without sending a large number of files or
+# requiring them to run this script.
 map.save('map.html')
