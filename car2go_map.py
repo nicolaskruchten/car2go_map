@@ -3,7 +3,7 @@
 # showing the spatio-temporal distribution of available
 # [Car2Go](https://www.car2go.com/CA/en/montreal/) vehicles in Montreal over a
 # 30-day period during the summer of 2016.
-# <small>[more info &raquo;](http://nicolas.kruchten.com/)</small>
+# <small>[more details &raquo;](http://nicolas.kruchten.com/content/2016/11/car2go-map/)</small>
 
 # [`pandas`](http://pandas.pydata.org/) and
 # [`scikit-learn`](http://scikit-learn.org/stable/) are used to manipulate the
@@ -67,8 +67,8 @@ for i, zone in zones.iterrows():
     # ... and a circle is added to the map:
     map.add_child( CircleMarker(
 
-        # &bullet; the circle is located on the centroid of the observations in
-        # the zone
+        # &bullet; the circle is placed on the centroid of the zone's
+        # observations
         location = [zone["lat"], zone["lon"]],
 
         # &bullet; the circle area is proportional to the
@@ -90,7 +90,7 @@ for i, zone in zones.iterrows():
         popup = Popup(max_width=chart.width[0]).add_child(chart)
     ) )
 
-# The map is then saved to disk as a single [HTML file](map.html) with inlined
+# The map is then saved to disk as an [HTML file](map.html) with inlined
 # data, Javascript and CSS information. This is very convenient for
 # collaborating with colleagues without sending a large number of files or
 # requiring them to run this script.
